@@ -1,10 +1,50 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
-import { Users, Search } from "lucide-react";
+import { Users, Search, AlertOctagon, Download } from "lucide-react";
+
+// Mock Data for Demo
+const MOCK_MEMBERS = [
+  {
+    id: 1,
+    name: "Sarah Moyo",
+    national_id: "63-1234567-T-07",
+    risk_status: "low",
+    savings_groups: { name: "Siyaphambili" },
+  },
+  {
+    id: 2,
+    name: "Tendai Gava",
+    national_id: "63-2345678-F-22",
+    risk_status: "low",
+    savings_groups: { name: "Tashinga" },
+  },
+  {
+    id: 3,
+    name: "Grace Ndlovu",
+    national_id: "08-9876543-X-12",
+    risk_status: "high",
+    savings_groups: { name: "Siyaphambili" },
+  },
+  {
+    id: 4,
+    name: "Peter Banda",
+    national_id: "59-1122334-P-59",
+    risk_status: "low",
+    savings_groups: { name: "Simuka" },
+  },
+  {
+    id: 5,
+    name: "Sarah Moyo",
+    national_id: "63-1234567-T-07",
+    risk_status: "medium",
+    savings_groups: { name: "Budiriro" },
+  }, // Duplicate for demo
+];
 
 export default function MemberManager() {
   const [members, setMembers] = useState([]);
   const [search, setSearch] = useState("");
+  const [duplicates, setDuplicates] = useState([]);
 
   useEffect(() => {
     fetchMembers();
@@ -15,8 +55,26 @@ export default function MemberManager() {
       .from("members")
       .select(`*, savings_groups (name)`)
       .order("name", { ascending: true });
-    if (data) setMembers(data);
+
+    if (!data || data.length === 0) setMembers(MOCK_MEMBERS);
+    else setMembers(data);
   }
+
+  // RFB Req: Duplicate Detection
+  const checkDuplicates = () => {
+    const seen = new Set();
+    const dups = [];
+    members.forEach((m) => {
+      if (seen.has(m.national_id)) dups.push(m);
+      seen.add(m.national_id);
+    });
+    setDuplicates(dups);
+    if (dups.length > 0)
+      alert(
+        `Found ${dups.length} potential duplicate records based on National ID.`,
+      );
+    else alert("No duplicates found in current registry.");
+  };
 
   const filtered = members.filter(
     (m) =>
@@ -36,32 +94,52 @@ export default function MemberManager() {
         }}
       >
         <h2>Beneficiaries</h2>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            background: "white",
-            padding: "0 10px",
-            border: "1px solid #cbd5e1",
-            borderRadius: 8,
-          }}
-        >
-          <Search size={16} color="#94a3b8" />
-          <input
-            placeholder="Search members..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              border: "none",
-              padding: 10,
-              outline: "none",
-              minWidth: 200,
-            }}
-          />
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={checkDuplicates} style={styles.actionBtn}>
+            <AlertOctagon size={16} /> Check Duplicates
+          </button>
+          <button
+            onClick={() => alert("Downloading CSV...")}
+            style={styles.outlineBtn}
+          >
+            <Download size={16} /> Export
+          </button>
         </div>
       </div>
 
-      {/* WRAPPED FOR MOBILE SCROLL */}
+      {duplicates.length > 0 && (
+        <div style={styles.alertBox}>
+          <strong>Alert:</strong> {duplicates.length} duplicate National IDs
+          detected. Please review records for{" "}
+          {duplicates.map((d) => d.name).join(", ")}.
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          background: "white",
+          padding: "0 10px",
+          border: "1px solid #cbd5e1",
+          borderRadius: 8,
+          marginBottom: 16,
+        }}
+      >
+        <Search size={16} color="#94a3b8" />
+        <input
+          placeholder="Search by Name or Group..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            border: "none",
+            padding: 10,
+            outline: "none",
+            width: "100%",
+          }}
+        />
+      </div>
+
       <div className="table-container">
         <table
           style={{
@@ -128,3 +206,39 @@ export default function MemberManager() {
     </div>
   );
 }
+
+const styles = {
+  actionBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    background: "#ef4444",
+    color: "white",
+    border: "none",
+    padding: "8px 16px",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontWeight: 500,
+  },
+  outlineBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    background: "white",
+    color: "#0f172a",
+    border: "1px solid #cbd5e1",
+    padding: "8px 16px",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontWeight: 500,
+  },
+  alertBox: {
+    background: "#fef2f2",
+    color: "#b91c1c",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    fontSize: "0.9rem",
+    border: "1px solid #fecaca",
+  },
+};

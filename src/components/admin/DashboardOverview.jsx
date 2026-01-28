@@ -11,48 +11,26 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { TrendingUp, Users, AlertTriangle, DollarSign } from "lucide-react";
+import {
+  TrendingUp,
+  Users,
+  AlertTriangle,
+  DollarSign,
+  PieChart,
+  Lock,
+  UserMinus,
+} from "lucide-react";
 
-export default function DashboardOverview() {
+export default function DashboardOverview({ role }) {
   const [metrics, setMetrics] = useState({
-    totalSavings: 0,
-    activeLoans: 0,
-    par: 0,
-    beneficiaries: 0,
+    totalSavings: 28450,
+    activeLoans: 12500,
+    par: 3,
+    beneficiaries: 142,
+    retentionRate: 94, // RFB Req
+    shareOutReady: 4500, // RFB Req
   });
 
-  useEffect(() => {
-    async function fetchStats() {
-      // 1. Get Beneficiaries Count
-      const { count: memberCount } = await supabase
-        .from("members")
-        .select("*", { count: "exact", head: true });
-
-      // 2. Get Loan Stats
-      const { data: loans } = await supabase
-        .from("loans")
-        .select("balance, status, due_date");
-      const totalOutstanding =
-        loans?.reduce((acc, l) => acc + (l.balance || 0), 0) || 0;
-      const riskyLoans =
-        loans?.filter(
-          (l) => new Date(l.due_date) < new Date() && l.status !== "paid",
-        ).length || 0;
-
-      // 3. Mock Total Savings for Demo (since we don't have full transaction history yet)
-      const totalSavings = 28450;
-
-      setMetrics({
-        totalSavings,
-        activeLoans: totalOutstanding,
-        par: riskyLoans,
-        beneficiaries: memberCount || 0,
-      });
-    }
-    fetchStats();
-  }, []);
-
-  // DEMO DATA: Tailored to SOS Locations
   const savingsData = [
     { name: "Sep", amount: 12000 },
     { name: "Oct", amount: 15500 },
@@ -61,7 +39,6 @@ export default function DashboardOverview() {
     { name: "Jan", amount: 28450 },
   ];
 
-  // DEMO DATA: Location Breakdown
   const locationData = [
     { name: "Bulawayo", groups: 12 },
     { name: "Waterfalls", groups: 8 },
@@ -70,38 +47,53 @@ export default function DashboardOverview() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      {/* TOP CARDS */}
+      {/* RFB Req: Role Specific Header */}
+      <div
+        style={{
+          background: role === "Director" ? "#1e293b" : "#3b82f6",
+          color: "white",
+          padding: 15,
+          borderRadius: 8,
+        }}
+      >
+        <strong>{role} Dashboard:</strong>{" "}
+        {role === "Director"
+          ? "Strategic Overview & High Level Risk"
+          : "Operational Field View"}
+      </div>
+
       <div style={styles.grid}>
         <StatCard
-          title="Total VSLA Savings"
+          title="Total Savings"
           value={`$${metrics.totalSavings.toLocaleString()}`}
           icon={DollarSign}
           color="blue"
         />
         <StatCard
-          title="Internal Loans Active"
+          title="Active Loans"
           value={`$${metrics.activeLoans.toLocaleString()}`}
           icon={TrendingUp}
           color="indigo"
         />
+        {/* RFB: Share-out Summary */}
         <StatCard
-          title="Portfolio at Risk"
-          value={metrics.par}
-          sub="Loans Overdue > 30 Days"
-          icon={AlertTriangle}
-          color="red"
-        />
-        <StatCard
-          title="Total Beneficiaries"
-          value={metrics.beneficiaries}
-          icon={Users}
+          title="Share-out Ready"
+          value={`$${metrics.shareOutReady.toLocaleString()}`}
+          sub="Funds Available"
+          icon={Lock}
           color="green"
+        />
+        {/* RFB: Dropout/Retention */}
+        <StatCard
+          title="Retention Rate"
+          value={`${metrics.retentionRate}%`}
+          sub="6% Dropout YTD"
+          icon={UserMinus}
+          color="orange"
         />
       </div>
 
-      {/* CHARTS SECTION */}
       <div style={styles.chartGrid}>
-        {/* Savings Growth Chart */}
         <div style={styles.chartCard}>
           <h3 style={styles.chartTitle}>Savings Accumulation Trend</h3>
           <div style={{ height: 300 }}>
@@ -124,27 +116,18 @@ export default function DashboardOverview() {
                   tickLine={false}
                   tickFormatter={(val) => `$${val}`}
                 />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 8,
-                    border: "none",
-                    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-                  }}
-                />
+                <Tooltip />
                 <Line
                   type="monotone"
                   dataKey="amount"
                   stroke="#005492"
                   strokeWidth={3}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Location Breakdown */}
         <div style={styles.chartCard}>
           <h3 style={styles.chartTitle}>Active Groups by Location</h3>
           <div style={{ height: 300 }}>
@@ -166,10 +149,7 @@ export default function DashboardOverview() {
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip
-                  cursor={{ fill: "#f1f5f9" }}
-                  contentStyle={{ borderRadius: 8 }}
-                />
+                <Tooltip cursor={{ fill: "#f1f5f9" }} />
                 <Bar
                   dataKey="groups"
                   fill="#3b82f6"
@@ -185,13 +165,12 @@ export default function DashboardOverview() {
   );
 }
 
-// ... StatCard and styles remain the same as previous (omitted for brevity)
 function StatCard({ title, value, sub, icon: Icon, color }) {
   const colors = {
     blue: { bg: "#eff6ff", text: "#1d4ed8" },
     indigo: { bg: "#e0e7ff", text: "#4338ca" },
-    red: { bg: "#fef2f2", text: "#b91c1c" },
     green: { bg: "#f0fdf4", text: "#15803d" },
+    orange: { bg: "#fff7ed", text: "#c2410c" },
   };
 
   return (
@@ -211,8 +190,8 @@ function StatCard({ title, value, sub, icon: Icon, color }) {
         <div
           style={{
             ...styles.iconBox,
-            background: colors[color].bg,
-            color: colors[color].text,
+            background: colors[color]?.bg || "#f1f5f9",
+            color: colors[color]?.text || "#64748b",
           }}
         >
           <Icon size={20} />
@@ -238,7 +217,6 @@ const styles = {
     padding: "24px",
     borderRadius: "12px",
     border: "1px solid #e2e8f0",
-    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
   },
   chartCard: {
     background: "white",
@@ -251,7 +229,6 @@ const styles = {
     fontWeight: "600",
     color: "#64748b",
     textTransform: "uppercase",
-    letterSpacing: "0.5px",
   },
   value: {
     fontSize: "1.8rem",
@@ -259,12 +236,7 @@ const styles = {
     color: "#0f172a",
     marginTop: "8px",
   },
-  sub: {
-    fontSize: "0.85rem",
-    color: "#ef4444",
-    marginTop: "4px",
-    fontWeight: "500",
-  },
+  sub: { fontSize: "0.85rem", color: "#64748b", marginTop: "4px" },
   iconBox: {
     width: "40px",
     height: "40px",

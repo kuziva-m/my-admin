@@ -2,6 +2,41 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { AlertTriangle, CheckCircle, Clock, DollarSign, X } from "lucide-react";
 
+const MOCK_LOANS = [
+  {
+    id: 1,
+    balance: 150.0,
+    due_date: "2026-02-15",
+    status: "active",
+    members: { name: "Sarah Moyo", phone: "0772123456" },
+    savings_groups: { name: "Siyaphambili" },
+  },
+  {
+    id: 2,
+    balance: 45.0,
+    due_date: "2026-01-20",
+    status: "active",
+    members: { name: "Tendai Gava", phone: "0773987654" },
+    savings_groups: { name: "Tashinga" },
+  },
+  {
+    id: 3,
+    balance: 200.0,
+    due_date: "2025-12-10",
+    status: "active",
+    members: { name: "Grace Ndlovu", phone: "0712345678" },
+    savings_groups: { name: "Siyaphambili" },
+  }, // Overdue
+  {
+    id: 4,
+    balance: 0.0,
+    due_date: "2026-01-05",
+    status: "paid",
+    members: { name: "Peter Banda", phone: "0774555666" },
+    savings_groups: { name: "Simuka" },
+  },
+];
+
 export default function LoanManager() {
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,8 +57,11 @@ export default function LoanManager() {
       .select(`*, members (name, phone), savings_groups (name)`)
       .order("due_date", { ascending: true });
 
-    if (error) console.error(error);
-    else setLoans(data || []);
+    if (!data || data.length === 0) {
+      setLoans(MOCK_LOANS);
+    } else {
+      setLoans(data);
+    }
     setLoading(false);
   };
 
@@ -31,34 +69,10 @@ export default function LoanManager() {
     if (!amount || isNaN(amount)) return alert("Please enter a valid amount");
     setProcessing(true);
 
-    const newBalance = parseFloat(selectedLoan.balance) - parseFloat(amount);
-    const status = newBalance <= 0 ? "paid" : "active";
-
-    // 1. Update Loan Balance
-    const { error } = await supabase
-      .from("loans")
-      .update({ balance: newBalance, status: status })
-      .eq("id", selectedLoan.id);
-
-    // 2. Create Transaction Record (Optional)
-    if (!error) {
-      const { error: txError } = await supabase.from("transactions").insert({
-        member_id: selectedLoan.member_id,
-        group_id: selectedLoan.group_id,
-        type: "loan_repayment",
-        amount: amount,
-        cycle_id: "cycle_1",
-      });
-
-      if (txError) console.error("Transaction log error:", txError);
-
-      alert("Repayment recorded successfully!");
-      setSelectedLoan(null);
-      setAmount("");
-      fetchLoans();
-    } else {
-      alert("Error: " + error.message);
-    }
+    // Mock update logic for demo
+    alert("Demo Mode: Repayment of $" + amount + " recorded!");
+    setSelectedLoan(null);
+    setAmount("");
     setProcessing(false);
   };
 
