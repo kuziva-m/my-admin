@@ -7,7 +7,8 @@ import {
   MapPin,
   Settings,
   LayoutDashboard,
-  // Heart icon removed as we are using the real logo now
+  Menu,
+  X,
 } from "lucide-react";
 
 // Components
@@ -22,6 +23,7 @@ export default function Admin() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Login State
   const [email, setEmail] = useState("");
@@ -29,15 +31,16 @@ export default function Admin() {
   const [authLoading, setAuthLoading] = useState(false);
 
   useEffect(() => {
+    // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+      if (session) setSession(session);
       setLoading(false);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+      if (session) setSession(session);
     });
 
     return () => subscription.unsubscribe();
@@ -54,9 +57,16 @@ export default function Admin() {
     if (error) alert(error.message);
   };
 
-  const handleLogout = () => supabase.auth.signOut();
+  // --- NEW: BYPASS DATABASE FOR DEMO ---
+  const handleDemoLogin = () => {
+    setSession({ user: { email: "demo@sos-zimbabwe.org", id: "demo-123" } });
+  };
 
-  // --- SOS VSLA MENU STRUCTURE ---
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+  };
+
   const MENU_ITEMS = [
     { id: "dashboard", label: "Program Overview", icon: LayoutDashboard },
     { id: "groups", label: "VSLA Groups", icon: Users },
@@ -68,16 +78,22 @@ export default function Admin() {
 
   if (loading) return <div style={styles.centerScreen}>Loading System...</div>;
 
+  // --- LOGIN SCREEN ---
   if (!session) {
     return (
       <div style={styles.loginContainer}>
         <div style={styles.loginCard}>
           <div style={{ textAlign: "center", marginBottom: 24 }}>
-            {/* UPDATED: Real Logo for Login Screen */}
+            {/* Make sure logo.png is in your /public folder */}
             <img
-              src="/logo.jpg"
-              alt="SOS Children's Villages"
-              style={{ height: "80px", marginBottom: "16px" }}
+              src="/logo.png"
+              alt="SOS Logo"
+              style={{
+                height: "80px",
+                marginBottom: "16px",
+                objectFit: "contain",
+              }}
+              onError={(e) => (e.target.style.display = "none")} // Hides if missing
             />
             <h2
               style={{
@@ -96,6 +112,7 @@ export default function Admin() {
               Zimbabwe National Office
             </p>
           </div>
+
           <form onSubmit={handleLogin} style={styles.form}>
             <input
               type="email"
@@ -117,6 +134,25 @@ export default function Admin() {
               {authLoading ? "Authenticating..." : "Login to Dashboard"}
             </button>
           </form>
+
+          {/* DEMO BUTTON */}
+          <div
+            style={{
+              marginTop: 20,
+              paddingTop: 20,
+              borderTop: "1px solid #f1f5f9",
+              textAlign: "center",
+            }}
+          >
+            <p
+              style={{ fontSize: "0.8rem", color: "#94a3b8", marginBottom: 10 }}
+            >
+              For Proposal Review Only
+            </p>
+            <button onClick={handleDemoLogin} style={styles.demoBtn}>
+              Enter Demo Mode (No Database)
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -124,18 +160,23 @@ export default function Admin() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
-      {/* Navbar with SOS Blue */}
+      {/* Navbar */}
       <nav style={styles.navbar}>
         <div style={styles.navContainer}>
           <div style={styles.logoSection}>
-            {/* UPDATED: Navbar Logo container for cohesiveness on blue background */}
             <div style={styles.navLogoContainer}>
-              <img src="/logo.jpg" alt="SOS Logo" style={{ height: "28px" }} />
+              <img
+                src="/logo.png"
+                alt="SOS Logo"
+                style={{ height: "28px" }}
+                onError={(e) => (e.target.style.display = "none")}
+              />
             </div>
-            <span>SOS VSLA MIS</span>
+            <span style={{ whiteSpace: "nowrap" }}>SOS VSLA MIS</span>
           </div>
 
-          <div className="desktop-nav" style={styles.desktopNav}>
+          {/* Desktop Nav */}
+          <div className="desktop-only" style={styles.desktopNav}>
             {MENU_ITEMS.map((item) => (
               <button
                 key={item.id}
@@ -146,7 +187,6 @@ export default function Admin() {
                     activeTab === item.id
                       ? "rgba(255,255,255,0.15)"
                       : "transparent",
-                  color: "white",
                   fontWeight: activeTab === item.id ? "600" : "400",
                 }}
               >
@@ -156,14 +196,59 @@ export default function Admin() {
             ))}
           </div>
 
-          <button onClick={handleLogout} style={styles.logoutBtn}>
-            <LogOut size={18} /> Logout
-          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              className="mobile-only"
+              onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "white",
+                cursor: "pointer",
+              }}
+            >
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+            <button
+              onClick={handleLogout}
+              style={styles.logoutBtn}
+              className="desktop-only"
+            >
+              <LogOut size={18} /> Logout
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Dropdown */}
+        {isMobileMenuOpen && (
+          <div style={styles.mobileMenu}>
+            {MENU_ITEMS.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  setMobileMenuOpen(false);
+                }}
+                style={{
+                  ...styles.mobileNavLink,
+                  background: activeTab === item.id ? "#1e293b" : "transparent",
+                }}
+              >
+                <item.icon size={18} /> {item.label}
+              </button>
+            ))}
+            <button
+              onClick={handleLogout}
+              style={{ ...styles.mobileNavLink, color: "#ef4444" }}
+            >
+              <LogOut size={18} /> Logout
+            </button>
+          </div>
+        )}
       </nav>
 
-      {/* Main Content Area */}
-      <main style={{ padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
+      {/* Main Content */}
+      <main style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
         {activeTab === "dashboard" && <DashboardOverview />}
         {activeTab === "groups" && <GroupManager />}
         {activeTab === "loans" && <LoanManager />}
@@ -182,7 +267,6 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     color: "#64748b",
-    fontWeight: 500,
   },
   loginContainer: {
     height: "100vh",
@@ -190,10 +274,11 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     background: "#f1f5f9",
+    padding: 20,
   },
   loginCard: {
     background: "white",
-    padding: "48px",
+    padding: "40px",
     borderRadius: "16px",
     boxShadow: "0 25px 50px -12px rgba(0,0,0,0.1)",
     width: "100%",
@@ -206,7 +291,6 @@ const styles = {
     border: "1px solid #cbd5e1",
     fontSize: "1rem",
     outline: "none",
-    transition: "border-color 0.2s",
   },
   submitBtn: {
     padding: "14px",
@@ -217,10 +301,19 @@ const styles = {
     border: "none",
     fontWeight: "bold",
     fontSize: "1rem",
-    transition: "background 0.2s",
+  },
+  demoBtn: {
+    padding: "10px",
+    background: "white",
+    color: "#64748b",
+    borderRadius: "8px",
+    cursor: "pointer",
+    border: "1px solid #cbd5e1",
+    fontWeight: "600",
+    fontSize: "0.9rem",
+    width: "100%",
   },
 
-  // Navbar Styles updated for logo
   navbar: {
     background: "#005492",
     color: "white",
@@ -231,9 +324,9 @@ const styles = {
     zIndex: 50,
   },
   navContainer: {
-    maxWidth: "1200px",
+    maxWidth: "1400px",
     margin: "0 auto",
-    padding: "0 24px",
+    padding: "0 20px",
     height: "100%",
     display: "flex",
     alignItems: "center",
@@ -244,8 +337,7 @@ const styles = {
     gap: "12px",
     fontWeight: "700",
     alignItems: "center",
-    fontSize: "1.25rem",
-    letterSpacing: "-0.5px",
+    fontSize: "1.2rem",
   },
   navLogoContainer: {
     background: "white",
@@ -254,7 +346,6 @@ const styles = {
     display: "flex",
     alignItems: "center",
   },
-
   desktopNav: { display: "flex", gap: "10px" },
   navLink: {
     display: "flex",
@@ -264,7 +355,7 @@ const styles = {
     cursor: "pointer",
     border: "none",
     fontSize: "0.95rem",
-    transition: "all 0.2s",
+    color: "white",
     alignItems: "center",
   },
   logoutBtn: {
@@ -277,7 +368,31 @@ const styles = {
     border: "none",
     cursor: "pointer",
     alignItems: "center",
-    fontWeight: 500,
-    transition: "background 0.2s",
+  },
+
+  mobileMenu: {
+    position: "absolute",
+    top: "70px",
+    left: 0,
+    right: 0,
+    background: "#0f172a",
+    padding: 10,
+    display: "flex",
+    flexDirection: "column",
+    gap: 5,
+    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+  },
+  mobileNavLink: {
+    display: "flex",
+    gap: 12,
+    padding: 16,
+    background: "transparent",
+    border: "none",
+    color: "white",
+    fontSize: "1rem",
+    alignItems: "center",
+    cursor: "pointer",
+    textAlign: "left",
+    borderRadius: 8,
   },
 };

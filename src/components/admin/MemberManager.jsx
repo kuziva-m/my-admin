@@ -29,6 +29,8 @@ export default function MemberManager() {
       <div
         style={{
           display: "flex",
+          flexWrap: "wrap",
+          gap: 10,
           justifyContent: "space-between",
           marginBottom: 20,
         }}
@@ -49,24 +51,24 @@ export default function MemberManager() {
             placeholder="Search members..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ border: "none", padding: 10, outline: "none", width: 200 }}
+            style={{
+              border: "none",
+              padding: 10,
+              outline: "none",
+              minWidth: 200,
+            }}
           />
         </div>
       </div>
 
-      <div
-        style={{
-          background: "white",
-          borderRadius: "12px",
-          border: "1px solid #e2e8f0",
-          overflow: "hidden",
-        }}
-      >
+      {/* WRAPPED FOR MOBILE SCROLL */}
+      <div className="table-container">
         <table
           style={{
             width: "100%",
             borderCollapse: "collapse",
             textAlign: "left",
+            minWidth: "600px",
           }}
         >
           <thead

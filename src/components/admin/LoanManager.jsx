@@ -40,17 +40,19 @@ export default function LoanManager() {
       .update({ balance: newBalance, status: status })
       .eq("id", selectedLoan.id);
 
-    // 2. Create Transaction Record (Optional, but good for history)
+    // 2. Create Transaction Record (Optional)
     if (!error) {
-      await supabase.from("transactions").insert({
+      const { error: txError } = await supabase.from("transactions").insert({
         member_id: selectedLoan.member_id,
         group_id: selectedLoan.group_id,
         type: "loan_repayment",
         amount: amount,
-        cycle_id: "cycle_1", // Demo cycle
+        cycle_id: "cycle_1",
       });
 
-      alert("Repayment recorded!");
+      if (txError) console.error("Transaction log error:", txError);
+
+      alert("Repayment recorded successfully!");
       setSelectedLoan(null);
       setAmount("");
       fetchLoans();
@@ -64,11 +66,41 @@ export default function LoanManager() {
     <div>
       <h2 style={{ marginBottom: 20 }}>Loan Portfolio</h2>
 
-      {/* (Keep your existing Stats Bar here, it was good!) */}
+      {/* Stats Bar */}
+      <div style={styles.statsBar}>
+        <div style={styles.stat}>
+          <span style={styles.statLabel}>Total Outstanding</span>
+          <span style={styles.statValue}>
+            ${loans.reduce((acc, l) => acc + (l.balance || 0), 0).toFixed(2)}
+          </span>
+        </div>
+        <div style={styles.stat}>
+          <span style={styles.statLabel}>Active Loans</span>
+          <span style={styles.statValue}>
+            {loans.filter((l) => l.status === "active").length}
+          </span>
+        </div>
+        <div style={styles.stat}>
+          <span style={styles.statLabel}>At Risk (Overdue)</span>
+          <span style={{ ...styles.statValue, color: "#ef4444" }}>
+            {
+              loans.filter(
+                (l) => new Date(l.due_date) < new Date() && l.status !== "paid",
+              ).length
+            }
+          </span>
+        </div>
+      </div>
 
-      {/* Loan Table */}
-      <div style={styles.tableCard}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      {/* Loan Table - WRAPPED FOR SCROLLING */}
+      <div className="table-container">
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            minWidth: "800px",
+          }}
+        >
           <thead
             style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}
           >
@@ -210,14 +242,22 @@ export default function LoanManager() {
 }
 
 const styles = {
-  // ... (Keep your previous styles)
-  // Add these new styles:
-  tableCard: {
+  statsBar: { display: "flex", flexWrap: "wrap", gap: 20, marginBottom: 20 },
+  stat: {
     background: "white",
+    padding: 20,
     borderRadius: 12,
     border: "1px solid #e2e8f0",
-    overflow: "hidden",
+    flex: "1 1 200px",
   },
+  statLabel: {
+    display: "block",
+    fontSize: "0.8rem",
+    color: "#64748b",
+    fontWeight: "bold",
+    textTransform: "uppercase",
+  },
+  statValue: { fontSize: "1.5rem", fontWeight: "bold", color: "#0f172a" },
   th: {
     textAlign: "left",
     padding: "12px 16px",
@@ -244,7 +284,6 @@ const styles = {
     fontSize: "0.8rem",
   },
 
-  // Modal Styles
   modalOverlay: {
     position: "fixed",
     inset: 0,
@@ -258,7 +297,7 @@ const styles = {
     background: "white",
     padding: 24,
     borderRadius: 12,
-    width: "100%",
+    width: "90%",
     maxWidth: 400,
     boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
   },
