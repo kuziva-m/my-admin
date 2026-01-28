@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { Plus, MapPin, Users, Loader } from "lucide-react";
 
+// LOCATIONS FROM ADVERT
+const LOCATIONS = ["Bulawayo", "Waterfalls", "Bindura"];
+
 export default function GroupManager() {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -9,7 +12,7 @@ export default function GroupManager() {
 
   // Form State
   const [newName, setNewName] = useState("");
-  const [newCluster, setNewCluster] = useState("");
+  const [newCluster, setNewCluster] = useState("Bulawayo"); // Default to one of the target areas
   const [newLat, setNewLat] = useState("");
   const [newLng, setNewLng] = useState("");
 
@@ -19,7 +22,6 @@ export default function GroupManager() {
 
   const fetchGroups = async () => {
     setLoading(true);
-    // Fetch groups and count members
     const { data, error } = await supabase
       .from("savings_groups")
       .select(`*, members(count)`)
@@ -31,7 +33,7 @@ export default function GroupManager() {
   };
 
   const handleCreateGroup = async () => {
-    if (!newName || !newCluster) return alert("Name and Cluster are required");
+    if (!newName) return alert("Group Name is required");
 
     const { error } = await supabase.from("savings_groups").insert({
       name: newName,
@@ -58,9 +60,9 @@ export default function GroupManager() {
           marginBottom: 20,
         }}
       >
-        <h2>Savings Groups</h2>
+        <h2>VSLA Groups</h2>
         <button onClick={() => setIsAdding(!isAdding)} style={styles.addBtn}>
-          <Plus size={16} /> New Group
+          <Plus size={16} /> Register New VSLA
         </button>
       </div>
 
@@ -71,25 +73,33 @@ export default function GroupManager() {
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
           >
             <input
-              placeholder="Group Name"
+              placeholder="Group Name (e.g. Siyaphambili Savings)"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               style={styles.input}
             />
-            <input
-              placeholder="Cluster/Zone"
+
+            {/* UPDATED: Dropdown for SOS Locations */}
+            <select
               value={newCluster}
               onChange={(e) => setNewCluster(e.target.value)}
-              style={styles.input}
-            />
+              style={styles.select}
+            >
+              {LOCATIONS.map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc} Cluster
+                </option>
+              ))}
+            </select>
+
             <input
-              placeholder="Latitude (e.g -19.01)"
+              placeholder="Latitude"
               value={newLat}
               onChange={(e) => setNewLat(e.target.value)}
               style={styles.input}
             />
             <input
-              placeholder="Longitude (e.g 29.15)"
+              placeholder="Longitude"
               value={newLng}
               onChange={(e) => setNewLng(e.target.value)}
               style={styles.input}
@@ -143,7 +153,7 @@ export default function GroupManager() {
 
 const styles = {
   addBtn: {
-    background: "#0f172a",
+    background: "#005492",
     color: "white",
     padding: "10px 16px",
     borderRadius: "6px",
@@ -165,6 +175,13 @@ const styles = {
     borderRadius: 6,
     border: "1px solid #cbd5e1",
     width: "100%",
+  },
+  select: {
+    padding: 10,
+    borderRadius: 6,
+    border: "1px solid #cbd5e1",
+    width: "100%",
+    background: "white",
   },
   saveBtn: {
     marginTop: 15,
